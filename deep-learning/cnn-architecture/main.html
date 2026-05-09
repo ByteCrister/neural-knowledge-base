@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CNN Explorer — Neural Network Visualizer</title>
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Delius+Swash+Caps&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+
+    <!-- LOADING OVERLAY -->
+    <div class="loader-overlay" id="loaderOverlay">
+        <div class="spinner"></div>
+        <div class="loader-text" id="loaderText">Initialising TensorFlow.js…</div>
+    </div>
+
+    <div class="app-wrapper">
+
+        <!-- HEADER -->
+        <header class="site-header">
+            <h1>✦ CNN Explorer ✦</h1>
+            <p>An interactive, fully transparent Convolutional Neural Network for handwritten digit classification</p>
+            <div class="kbd-hint">
+                <span><kbd class="kbd">Space</kbd> Pause/Resume training</span>
+                <span><kbd class="kbd">R</kbd> Reset model</span>
+                <span><kbd class="kbd">C</kbd> Clear canvas</span>
+                <span><kbd class="kbd">P</kbd> Predict</span>
+            </div>
+        </header>
+
+        <!-- ══════════════════════════════════════════════════════════════
+       SECTION 1 — CNN BASICS
+  ══════════════════════════════════════════════════════════════ -->
+        <div class="section" id="sec1">
+            <div class="section-header" onclick="toggleSection('sec1')">
+                <div class="section-num">1</div>
+                <div class="section-title">🧮 CNN Basics — Interactive Demos</div>
+                <div class="section-chevron">▾</div>
+            </div>
+            <div class="section-body" id="sec1-body">
+
+                <!-- CONVOLUTION DEMO -->
+                <div class="card">
+                    <div class="card-title"
+                        data-tip="Convolution slides a small kernel (filter) over the input image, computing a weighted sum at each position to detect features like edges.">
+                        🔲 Convolution Demo</div>
+                    <div class="row" style="align-items:flex-start">
+                        <div class="col">
+                            <div class="small dim">Input (click cells to edit)</div>
+                            <div id="convInput" style="display:inline-grid; gap:2px;"></div>
+                            <div style="margin-top:6px; display:flex; gap:6px;">
+                                <button class="btn btn-sm btn-secondary" onclick="randomiseConvInput()">🎲
+                                    Randomise</button>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="small dim">Kernel (editable)</div>
+                            <div id="convKernel" style="display:inline-grid; gap:2px;"></div>
+                            <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                                <button class="btn btn-sm btn-secondary"
+                                    onclick="setKernelPreset('edge-h')">H-Edge</button>
+                                <button class="btn btn-sm btn-secondary"
+                                    onclick="setKernelPreset('edge-v')">V-Edge</button>
+                                <button class="btn btn-sm btn-secondary" onclick="setKernelPreset('blur')">Blur</button>
+                                <button class="btn btn-sm btn-secondary"
+                                    onclick="setKernelPreset('sharpen')">Sharpen</button>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="ctrl-row">
+                                <span class="ctrl-label"
+                                    data-tip="Stride controls how many pixels the kernel moves each step.">Stride</span>
+                                <input type="range" id="strideSlider" min="1" max="2" value="1"
+                                    oninput="updateConvParams()" />
+                                <span class="ctrl-val" id="strideVal">1</span>
+                            </div>
+                            <div class="ctrl-row">
+                                <span class="ctrl-label"
+                                    data-tip="Padding adds zeros around the input so the output has the same size.">Padding</span>
+                                <input type="checkbox" id="paddingCheck" onchange="updateConvParams()" />
+                                <span class="small mono">Same</span>
+                            </div>
+                            <button class="btn btn-primary btn-sm mt-8" onclick="animateConv()">▶ Animate</button>
+                        </div>
+                        <div class="col">
+                            <div class="small dim">Output Feature Map</div>
+                            <canvas id="convOutputCanvas" width="120" height="120"></canvas>
+                            <div style="margin-top:4px; font-family:var(--font-mono); font-size:0.7rem; color:var(--text-dim)"
+                                id="convOutSize"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTIVATION DEMO -->
+                <div class="card">
+                    <div class="card-title"
+                        data-tip="ReLU sets all negative values to zero, introducing non-linearity. Sigmoid squashes values to (0,1).">
+                        ⚡ Activation Function Demo</div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="small dim">Before activation</div>
+                            <canvas id="actBeforeCanvas" width="130" height="130"></canvas>
+                        </div>
+                        <div class="col" style="justify-content:center; align-self:center;">
+                            <div class="ctrl-row">
+                                <span class="ctrl-label">Function</span>
+                                <select id="actFnSelect" onchange="runActivation()">
+                                    <option value="relu">ReLU</option>
+                                    <option value="sigmoid">Sigmoid</option>
+                                </select>
+                            </div>
+                            <div style="font-size:1.5rem; text-align:center; color:var(--accent)">→</div>
+                        </div>
+                        <div class="col">
+                            <div class="small dim">After activation</div>
+                            <canvas id="actAfterCanvas" width="130" height="130"></canvas>
+                        </div>
+                        <div class="col"
+                            style="font-family:var(--font-mono); font-size:0.75rem; align-self:center; max-width:180px;">
+                            <div id="actFormula" style="color:var(--accent3);">ReLU(x) = max(0, x)</div>
+                            <div class="mt-8 dim small">Negative values (blue) become zero. Positive values (yellow)
+                                pass through.</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-secondary mt-8" onclick="randomActMatrix()">🎲 New matrix</button>
+                </div>
+
+                <!-- POOLING DEMO -->
+                <div class="card">
+                    <div class="card-title"
+                        data-tip="Max Pooling picks the largest value in each 2×2 window, reducing spatial dimensions and adding translation invariance.">
+                        🗜️ Max Pooling Demo</div>
+                    <div class="row">
+                        <div class="col">
+                            <div class="small dim">4×4 input</div>
+                            <canvas id="poolInputCanvas" width="130" height="130"></canvas>
+                        </div>
+                        <div class="col" style="align-self:center">
+                            <div style="color:var(--accent); font-size:1.5rem">→</div>
+                            <div class="small mono dim" style="text-align:center">2×2<br />stride 2</div>
+                        </div>
+                        <div class="col">
+                            <div class="small dim">2×2 output</div>
+                            <canvas id="poolOutputCanvas" width="130" height="130"></canvas>
+                        </div>
+                        <div class="col" style="font-family:var(--font-mono); font-size:0.75rem; align-self:center;">
+                            <div id="poolValues" style="color:var(--accent3);"></div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-secondary mt-8" onclick="initPoolDemo()">🎲 Randomise</button>
+                </div>
+
+                <!-- FLATTEN & FC DEMO -->
+                <div class="card">
+                    <div class="card-title"
+                        data-tip="Flatten converts 2D feature maps into a 1D vector. A Dense layer multiplies this by a weight matrix and adds biases.">
+                        ⬡ Flatten & Fully Connected Demo</div>
+                    <div class="row" style="align-items:flex-start;">
+                        <div class="col">
+                            <div class="small dim">2×2 feature map</div>
+                            <canvas id="flatInputCanvas" width="80" height="80"></canvas>
+                        </div>
+                        <div class="col" style="align-self:center; font-size:1.5rem; color:var(--accent)">→ flatten →
+                        </div>
+                        <div class="col">
+                            <div class="small dim">1D vector (4 values)</div>
+                            <canvas id="flatVecCanvas" width="120" height="28"></canvas>
+                        </div>
+                        <div class="col" style="align-self:center; font-size:1.5rem; color:var(--accent)">→ dense →
+                        </div>
+                        <div class="col">
+                            <div class="small dim">3 neurons</div>
+                            <canvas id="flatDenseCanvas" width="40" height="100"></canvas>
+                        </div>
+                        <div class="col" style="font-family:var(--font-mono); font-size:0.72rem; align-self:center;">
+                            <div id="fcFormula" style="color:var(--accent3);">y = W·x + b</div>
+                            <div class="mt-8 dim small">Each neuron computes a weighted sum of all inputs plus a bias
+                                term.</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-secondary mt-8" onclick="initFlatDemo()">🎲 Randomise</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+       SECTION 2 — DATASET
+  ══════════════════════════════════════════════════════════════ -->
+        <div class="section" id="sec2">
+            <div class="section-header" onclick="toggleSection('sec2')">
+                <div class="section-num">2</div>
+                <div class="section-title">🗂️ Dataset — MNIST-Style Digits</div>
+                <div class="section-chevron">▾</div>
+            </div>
+            <div class="section-body" id="sec2-body">
+                <div id="datasetStatus" class="badge badge-idle">
+                    <div class="pulse"></div> Loading dataset…
+                </div>
+                <div class="row mt-8" style="gap:8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="showNextBatch()">🔀 Next Batch</button>
+                    <span class="small mono dim" id="datasetCount"></span>
+                </div>
+                <div class="mnist-grid mt-8" id="mnistGrid"></div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+       SECTION 3 — MODEL ARCHITECTURE
+  ══════════════════════════════════════════════════════════════ -->
+        <div class="section" id="sec3">
+            <div class="section-header" onclick="toggleSection('sec3')">
+                <div class="section-num">3</div>
+                <div class="section-title">🏗️ Model Architecture</div>
+                <div class="section-chevron">▾</div>
+            </div>
+            <div class="section-body" id="sec3-body">
+                <div class="arch-diagram" id="archDiagram"></div>
+                <hr class="doodle" />
+                <div id="archParamTable" class="card" style="font-family:var(--font-mono); font-size:0.78rem;"></div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+       SECTION 4 — TRAINING
+  ══════════════════════════════════════════════════════════════ -->
+        <div class="section" id="sec4">
+            <div class="section-header" onclick="toggleSection('sec4')">
+                <div class="section-num">4</div>
+                <div class="section-title">🚂 Training the Model</div>
+                <div class="section-chevron">▾</div>
+            </div>
+            <div class="section-body" id="sec4-body">
+
+                <div class="card">
+                    <div class="card-title">⚙️ Hyperparameters</div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label"
+                            data-tip="Number of full passes through the training dataset.">Epochs</span>
+                        <input type="range" id="epochsSlider" min="1" max="20" value="5"
+                            oninput="document.getElementById('epochsVal').textContent=this.value" />
+                        <span class="ctrl-val" id="epochsVal">5</span>
+                    </div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label"
+                            data-tip="Number of samples processed before weights are updated.">Batch Size</span>
+                        <select id="batchSelect">
+                            <option value="8">8</option>
+                            <option value="16" selected>16</option>
+                            <option value="32">32</option>
+                        </select>
+                    </div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label"
+                            data-tip="How large a step to take in the direction of the gradient.">Learn Rate</span>
+                        <select id="lrSelect">
+                            <option value="0.001">0.001</option>
+                            <option value="0.003" selected>0.003</option>
+                            <option value="0.01">0.01</option>
+                            <option value="0.03">0.03</option>
+                            <option value="0.1">0.1</option>
+                        </select>
+                    </div>
+                    <div class="ctrl-row">
+                        <span class="ctrl-label"
+                            data-tip="When enabled, pauses after each epoch's first batch to show full under-the-hood details.">Inspect
+                            Steps</span>
+                        <input type="checkbox" id="inspectCheck" checked />
+                        <span class="small mono dim">Show step-by-step (pause every epoch)</span>
+                    </div>
+                </div>
+
+                <div class="row" style="align-items:center; margin-bottom:12px;">
+                    <button class="btn btn-success" id="btnTrain" onclick="startTraining()">▶ Start Training</button>
+                    <button class="btn btn-secondary" id="btnPause" onclick="pauseTraining()" disabled>⏸ Pause</button>
+                    <button class="btn btn-danger" id="btnReset" onclick="resetModel()">⟳ Reset</button>
+                    <span id="trainStatus" class="badge badge-idle">
+                        <div class="pulse"></div> Idle
+                    </span>
+                </div>
+
+                <div class="small mono dim" id="epochLabel">Epoch — / —</div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar" id="epochProgress"></div>
+                </div>
+                <div class="small mono dim" id="batchLabel">Batch — / —</div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar" id="batchProgress"></div>
+                </div>
+
+                <div class="row mt-8">
+                    <div class="card" style="flex:1; min-width:160px;">
+                        <div class="card-title">📉 Loss</div>
+                        <div class="chart-box"><canvas id="lossChart"></canvas></div>
+                    </div>
+                    <div class="card" style="flex:1; min-width:160px;">
+                        <div class="card-title">📈 Accuracy</div>
+                        <div class="chart-box"><canvas id="accChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="card mt-8" id="inspectContainer" style="display:none;">
+                    <div class="card-title">🔬 Under-the-Hood — Single Training Step</div>
+                    <div class="row" style="margin-bottom:10px;">
+                        <button class="btn btn-success btn-sm" id="btnContinue" onclick="continueTraining()">▶ Continue
+                            Training</button>
+                    </div>
+                    <div class="inspect-panel visible" id="inspectPanel"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+       SECTION 5 — PREDICTION
+  ══════════════════════════════════════════════════════════════ -->
+        <div class="section" id="sec5">
+            <div class="section-header" onclick="toggleSection('sec5')">
+                <div class="section-num">5</div>
+                <div class="section-title">✏️ Prediction — Draw & Classify</div>
+                <div class="section-chevron">▾</div>
+            </div>
+            <div class="section-body" id="sec5-body">
+                <div class="draw-area">
+                    <div class="col">
+                        <div class="small dim">Draw a digit (0–9)</div>
+                        <canvas id="drawCanvas" width="280" height="280"></canvas>
+                        <div class="draw-controls mt-8">
+                            <button class="btn btn-primary" onclick="predictDrawing()">🔍 Predict</button>
+                            <button class="btn btn-secondary btn-sm" onclick="clearCanvas()">✕ Clear</button>
+                            <button class="btn btn-secondary btn-sm" onclick="loadRandomTest()">🎲 Random Test</button>
+                        </div>
+                    </div>
+                    <div class="col" style="flex:1; min-width:200px;">
+                        <div class="card" id="predResultCard" style="display:none;">
+                            <div class="card-title">🎯 Prediction Result</div>
+                            <div style="font-size:3rem; text-align:center; margin:10px 0;" id="predDigit">?</div>
+                            <div class="prob-bars" id="predProbs"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-8" id="predInspectContainer" style="display:none;">
+                    <div class="card-title">🔬 Forward Pass — Step-by-Step</div>
+                    <div class="inspect-panel visible" id="predInspectPanel"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════════
+       SECTION 6 — COMPUTATION WALKTHROUGH (NEW)
+  ══════════════════════════════════════════════════════════════ -->
+        <div class="section" id="sec6">
+            <div class="section-header" onclick="toggleSection('sec6')">
+                <div class="section-num">6</div>
+                <div class="section-title">🔢 Step-by-Step Computation Walkthrough</div>
+                <div class="section-chevron">▾</div>
+            </div>
+            <div class="section-body" id="sec6-body">
+
+                <div class="card" style="margin-bottom:18px;">
+                    <div class="card-title">ℹ️ About This Section</div>
+                    <div class="small" style="color:var(--text-dim); font-family:var(--font-mono); line-height:1.7;">
+                        This section traces the exact numeric computations at every stage of the CNN pipeline —
+                        from raw pixel values through convolution, ReLU, pooling, flattening, dense layers, and softmax.
+                        Each step shows the actual formulas and example numbers so you can follow the math precisely.
+                        Click any step header to expand it.
+                    </div>
+                    <div class="row mt-8" style="gap:8px;">
+                        <button class="btn btn-primary btn-sm" onclick="generateCompWalkthrough()">🎲 Generate New
+                            Example</button>
+                        <span class="small mono dim" id="compWalkthroughStatus">Click Generate to start</span>
+                    </div>
+                </div>
+
+                <!-- Pipeline steps rendered by JS -->
+                <div id="compPipeline"></div>
+
+            </div>
+        </div>
+
+    </div><!-- end app-wrapper -->
+
+    <script src="./app.js"></script>
+</body>
+
+</html>
